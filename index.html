@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本の祝日 - Cron形式生成</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls label {
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .controls select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .controls select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .copy-all-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .copy-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .holidays-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .holiday-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .holiday-item:last-child {
+            border-bottom: none;
+        }
+
+        .holiday-item:hover {
+            background-color: #f8f9ff;
+        }
+
+        .holiday-date {
+            font-weight: 600;
+            color: #333;
+            min-width: 120px;
+        }
+
+        .holiday-name {
+            flex: 1;
+            color: #555;
+        }
+
+        .cron-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cron-code {
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #e91e63;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #5a6fd6;
+        }
+
+        .copy-btn.copied {
+            background: #4caf50;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #e91e63;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .info-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .info-box code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .settings-row input[type="number"] {
+            width: 60px;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .settings-row input[type="text"] {
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .settings-row input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .add-btn:hover {
+            background: #43a047;
+        }
+
+        .custom-list {
+            margin-top: 15px;
+        }
+
+        .custom-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .custom-item span {
+            flex: 1;
+        }
+
+        .delete-btn {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c2185b;
+        }
+
+        .toggle-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .toggle-btn.active {
+            background: #4caf50;
+        }
+
+        .holiday-item.custom {
+            background: #fff3e0;
+        }
+
+        .holiday-item.nenmatsu {
+            background: #e3f2fd;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .badge.custom {
+            background: #ff9800;
+            color: white;
+        }
+
+        .badge.nenmatsu {
+            background: #2196f3;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .holiday-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .cron-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .controls {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .copy-all-btn {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎌 日本の祝日</h1>
+        <p class="subtitle">祝日をCron形式でコピーできます</p>
+
+        <div class="controls">
+            <label for="year">年を選択:</label>
+            <select id="year"></select>
+            <button class="copy-all-btn" onclick="copyAllCron()">すべてのCronをコピー</button>
+        </div>
+
+        <!-- 年末年始設定 -->
+        <div class="settings-section">
+            <h3>🎍 年末年始の休み</h3>
+            <div class="settings-row">
+                <label>
+                    <input type="checkbox" id="nenmatsu-enabled" checked onchange="updateHolidayList()">
+                    有効
+                </label>
+            </div>
+            <div class="settings-row" id="nenmatsu-settings">
+                <span>開始:</span>
+                <input type="number" id="nenmatsu-start-month" value="12" min="1" max="12" onchange="updateHolidayList()">月
+                <input type="number" id="nenmatsu-start-day" value="29" min="1" max="31" onchange="updateHolidayList()">日
+                <span style="margin-left: 20px;">終了:</span>
+                <input type="number" id="nenmatsu-end-month" value="1" min="1" max="12" onchange="updateHolidayList()">月
+                <input type="number" id="nenmatsu-end-day" value="3" min="1" max="31" onchange="updateHolidayList()">日
+            </div>
+        </div>
+
+        <!-- カスタム休日設定 -->
+        <div class="settings-section">
+            <h3>📅 カスタム休日</h3>
+            <div class="settings-row">
+                <input type="number" id="custom-month" placeholder="月" min="1" max="12">月
+                <input type="number" id="custom-day" placeholder="日" min="1" max="31">日
+                <input type="text" id="custom-name" placeholder="休日名（任意）">
+                <button class="add-btn" onclick="addCustomHoliday()">追加</button>
+            </div>
+            <div class="custom-list" id="custom-list"></div>
+        </div>
+
+        <div class="holidays-container" id="holidays-list">
+            <div class="loading">祝日を読み込み中...</div>
+        </div>
+
+        <div class="info-box">
+            <h3>📋 Cron形式について</h3>
+            <p>Cron形式: <code>分 時 日 月 曜日</code></p>
+            <p>例: <code>* * 1 1 *</code> は「1月1日」を意味します（時刻はワイルドカード）。</p>
+            <p>「すべてのCronをコピー」でYAML形式のリストとしてコピーできます。</p>
+            <p>データ出典: <a href="https://holidays-jp.github.io/" target="_blank">Holidays JP API</a></p>
+        </div>
+    </div>
+
+    <script>
+        const HOLIDAYS_API_BASE = 'https://holidays-jp.github.io/api/v1';
+        let apiHolidays = [];
+        let customHolidays = [];
+        let currentYear = new Date().getFullYear();
+
+        // 年のセレクトボックスを初期化
+        function initYearSelect() {
+            const select = document.getElementById('year');
+            const thisYear = new Date().getFullYear();
+            
+            for (let year = thisYear - 1; year <= thisYear + 2; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = `${year}年`;
+                if (year === thisYear) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            }
+
+            select.addEventListener('change', (e) => {
+                currentYear = parseInt(e.target.value);
+                loadHolidays(currentYear);
+            });
+        }
+
+        // 祝日データを取得
+        async function loadHolidays(year) {
+            const container = document.getElementById('holidays-list');
+            container.innerHTML = '<div class="loading">祝日を読み込み中...</div>';
+
+            try {
+                const response = await fetch(`${HOLIDAYS_API_BASE}/${year}/date.json`);
+                if (!response.ok) {
+                    throw new Error('データの取得に失敗しました');
+                }
+                const data = await response.json();
+                
+                apiHolidays = Object.entries(data).map(([date, name]) => ({
+                    date,
+                    name,
+                    type: 'holiday'
+                }));
+
+                updateHolidayList();
+            } catch (error) {
+                container.innerHTML = `<div class="error">エラー: ${error.message}</div>`;
+            }
+        }
+
+        // 年末年始の日付リストを生成
+        function getNenmatsuDates() {
+            const enabled = document.getElementById('nenmatsu-enabled').checked;
+            if (!enabled) return [];
+
+            const startMonth = parseInt(document.getElementById('nenmatsu-start-month').value);
+            const startDay = parseInt(document.getElementById('nenmatsu-start-day').value);
+            const endMonth = parseInt(document.getElementById('nenmatsu-end-month').value);
+            const endDay = parseInt(document.getElementById('nenmatsu-end-day').value);
+
+            const dates = [];
+            
+            // 年末部分（12月の場合）
+            if (startMonth === 12) {
+                for (let d = startDay; d <= 31; d++) {
+                    const date = `${currentYear}-12-${String(d).padStart(2, '0')}`;
+                    dates.push({
+                        date,
+                        name: '年末年始休暇',
+                        type: 'nenmatsu'
+                    });
+                }
+            }
+            
+            // 年始部分（1月の場合）
+            if (endMonth === 1) {
+                for (let d = 1; d <= endDay; d++) {
+                    const date = `${currentYear}-01-${String(d).padStart(2, '0')}`;
+                    dates.push({
+                        date,
+                        name: '年末年始休暇',
+                        type: 'nenmatsu'
+                    });
+                }
+            }
+
+            // その他の月（startMonth !== 12 or endMonth !== 1の場合も対応）
+            if (startMonth !== 12) {
+                const daysInMonth = new Date(currentYear, startMonth, 0).getDate();
+                for (let d = startDay; d <= daysInMonth; d++) {
+                    const date = `${currentYear}-${String(startMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    dates.push({
+                        date,
+                        name: '年末年始休暇',
+                        type: 'nenmatsu'
+                    });
+                }
+            }
+            
+            if (endMonth !== 1 && endMonth !== startMonth) {
+                for (let d = 1; d <= endDay; d++) {
+                    const date = `${currentYear}-${String(endMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    dates.push({
+                        date,
+                        name: '年末年始休暇',
+                        type: 'nenmatsu'
+                    });
+                }
+            }
+
+            return dates;
+        }
+
+        // カスタム休日を追加
+        function addCustomHoliday() {
+            const month = document.getElementById('custom-month').value;
+            const day = document.getElementById('custom-day').value;
+            const name = document.getElementById('custom-name').value || 'カスタム休日';
+
+            if (!month || !day) {
+                alert('月と日を入力してください');
+                return;
+            }
+
+            const date = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            customHolidays.push({
+                month: parseInt(month),
+                day: parseInt(day),
+                name
+            });
+
+            // 入力をクリア
+            document.getElementById('custom-month').value = '';
+            document.getElementById('custom-day').value = '';
+            document.getElementById('custom-name').value = '';
+
+            renderCustomList();
+            updateHolidayList();
+        }
+
+        // カスタム休日を削除
+        function removeCustomHoliday(index) {
+            customHolidays.splice(index, 1);
+            renderCustomList();
+            updateHolidayList();
+        }
+
+        // カスタム休日リストを描画
+        function renderCustomList() {
+            const container = document.getElementById('custom-list');
+            if (customHolidays.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = customHolidays.map((h, index) => `
+                <div class="custom-item">
+                    <span>${h.month}月${h.day}日 - ${h.name}</span>
+                    <button class="delete-btn" onclick="removeCustomHoliday(${index})">削除</button>
+                </div>
+            `).join('');
+        }
+
+        // 全ての休日をマージして更新
+        function updateHolidayList() {
+            const nenmatsuDates = getNenmatsuDates();
+            
+            const customDates = customHolidays.map(h => ({
+                date: `${currentYear}-${String(h.month).padStart(2, '0')}-${String(h.day).padStart(2, '0')}`,
+                name: h.name,
+                type: 'custom'
+            }));
+
+            // すべての日付をマージ（重複を除去）
+            const allDates = [...apiHolidays, ...nenmatsuDates, ...customDates];
+            const uniqueDates = new Map();
+            
+            allDates.forEach(item => {
+                if (!uniqueDates.has(item.date)) {
+                    uniqueDates.set(item.date, item);
+                }
+            });
+
+            const currentHolidays = Array.from(uniqueDates.values())
+                .map(item => ({
+                    ...item,
+                    cron: dateToCron(item.date)
+                }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            renderHolidays(currentHolidays);
+        }
+
+        // 日付をCron形式に変換
+        function dateToCron(dateStr) {
+            const [year, month, day] = dateStr.split('-');
+            return `* * ${parseInt(day)} ${parseInt(month)} *`;
+        }
+
+        // 祝日リストを描画
+        function renderHolidays(holidays) {
+            const container = document.getElementById('holidays-list');
+            
+            if (holidays.length === 0) {
+                container.innerHTML = '<div class="loading">祝日データがありません</div>';
+                return;
+            }
+
+            // グローバル変数として保存（コピー用）
+            window.currentHolidaysForCopy = holidays;
+
+            container.innerHTML = holidays.map((holiday, index) => {
+                let badgeHtml = '';
+                let itemClass = 'holiday-item';
+                
+                if (holiday.type === 'custom') {
+                    badgeHtml = '<span class="badge custom">カスタム</span>';
+                    itemClass += ' custom';
+                } else if (holiday.type === 'nenmatsu') {
+                    badgeHtml = '<span class="badge nenmatsu">年末年始</span>';
+                    itemClass += ' nenmatsu';
+                }
+
+                return `
+                    <div class="${itemClass}">
+                        <span class="holiday-date">${formatDate(holiday.date)}</span>
+                        <span class="holiday-name">${holiday.name}${badgeHtml}</span>
+                        <div class="cron-container">
+                            <code class="cron-code">${holiday.cron}</code>
+                            <button class="copy-btn" onclick="copySingleCron('${holiday.cron}', this)">コピー</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 日付をフォーマット
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekday = weekdays[date.getDay()];
+            return `${month}月${day}日 (${weekday})`;
+        }
+
+        // 個別のCronをコピー
+        async function copySingleCron(cron, button) {
+            await navigator.clipboard.writeText(cron);
+            
+            button.textContent = 'コピー済み';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.textContent = 'コピー';
+                button.classList.remove('copied');
+            }, 2000);
+        }
+
+        // すべてのCronをコピー（YAML形式）
+        async function copyAllCron() {
+            const holidays = window.currentHolidaysForCopy || [];
+            const allCrons = holidays.map(h => `- "${h.cron}"`).join('\n');
+            await navigator.clipboard.writeText(allCrons);
+            
+            const button = document.querySelector('.copy-all-btn');
+            const originalText = button.textContent;
+            button.textContent = 'コピー済み!';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }
+
+        // 初期化
+        initYearSelect();
+        loadHolidays(currentYear);
+    </script>
+</body>
+</html>
